@@ -3,6 +3,8 @@
 const chalk = require('chalk')
 const boxen = require('boxen')
 const yargs = require('yargs')
+const simpleGit = require('simple-git');
+const git = simpleGit();
 
 const getUrl = url => url.split('/').pop().split('-').filter(isNaN).join('-')
 
