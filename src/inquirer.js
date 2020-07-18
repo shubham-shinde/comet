@@ -14,7 +14,6 @@ const getRequiredData = async () => {
 		trelloToken: await readOrAskData('trelloToken', tokenFilePath),
 		trelloLink: await readOrAskData('trelloLink', dataFilePath),
 	}
-	console.log(credentials)
 	return credentials;
 }
 
