@@ -1,6 +1,8 @@
 import simpleGit from "simple-git";
 const git = simpleGit();
 
+export const destinationBranches = ["staging", "internal", "integration"];
+
 export const getBranchName = (url) =>
   url
     .split("/")
@@ -20,3 +22,9 @@ export const createBranchFromMaster = async (branchName) => {
   await git.checkoutLocalBranch(branchName, "master");
   console.log("you are on");
 };
+
+export const currentBranch = async () => {
+  const list = await git.branch();
+  return Object.values(list.branches).find((branch) => branch.current).name;
+};
+
