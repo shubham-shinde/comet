@@ -16,7 +16,7 @@ var getBranchName = function getBranchName(url) {
   return url.split("/").pop().split("-").filter(isNaN).join("-");
 };
 
-var options = _yargs["default"].usage("Usage: -u <url>").usage("Usage: -n <name>").options("u", {
+var options = _yargs["default"].command("new").usage("Usage: -u <url>").usage("Usage: -n <name>").options("u", {
   alias: "url",
   describe: "Trello Card Url",
   type: "string",
@@ -28,7 +28,7 @@ var options = _yargs["default"].usage("Usage: -u <url>").usage("Usage: -n <name>
   demandOption: true
 }).argv;
 
-var greeting = _chalk["default"].white.bold("".concat(options.name, "/").concat(getBranchName(options.url)));
+var greeting = _chalk["default"].white.bold("".concat(options.name, "/").concat(getUrl(options.url)));
 
 var boxenOptions = {
   padding: 1,
