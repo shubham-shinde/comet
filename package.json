@@ -5,7 +5,7 @@
   "main": "bin/index.js",
   "scripts": {
     "build": "babel src --out-dir bin",
-    "check": "babel-node src",
+    "check": "node src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
@@ -19,13 +19,14 @@
   ],
   "author": "shubham",
   "license": "ISC",
-  "devDependencies": {
+  "dependencies": {
     "@babel/cli": "^7.10.5",
     "@babel/core": "^7.10.5",
     "@babel/node": "^7.10.5",
-    "@babel/preset-env": "^7.10.4"
-  },
-  "dependencies": {
+    "@babel/polyfill": "^7.10.4",
+    "@babel/preset-env": "^7.10.4",
+    "@babel/register": "^7.10.5",
+    "bitbucket": "^2.4.0",
     "boxen": "^4.0.0",
     "chalk": "^2.4.2",
     "configstore": "^5.0.1",
