@@ -5,7 +5,7 @@ import { getBranchName, createBranchFromMaster } from "./gitLocal";
 
 const argv = yargs
   .usage("Usage: $0 <command> [options]")
-  .command("new", "create a branch", (yargs) => {
+  .command("new", "create a branch", async (yargs) => {
     const argv = yargs
       .usage("usage: $0 new <url> [options]")
       .options("n", {
@@ -33,7 +33,7 @@ const argv = yargs
     const msgBox = boxen(argv.bname || greeting);
     //this is branch_name
     //create new brach from master branch
-    createBranchFromMaster(branch_name);
+    await createBranchFromMaster(branch_name);
     console.log(msgBox);
   })
   .command("pr", "create pr", (yargs) => {
