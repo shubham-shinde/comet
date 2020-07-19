@@ -1,10 +1,34 @@
 import inquirer from "inquirer";
 import fs from "fs";
-import { getBranchName, createBranchFromMaster } from "./gitLocal";
+import {
+  currentBranch,
+  getBranchName,
+  createBranchFromMaster,
+} from "./gitLocal";
 
 const baseDir = ".comet";
 const tokenFilePath = ".comet/token.json";
 const dataFilePath = ".comet/data.json";
+const PRbranches = ["staging", "internal", "integration"];
+
+export const createPRFromCurrrentBranch = async () => {
+  if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
+  const rawData = fs.readFileSync(dataFilePath, "utf8");
+  const branches = JSON.parse(rawData);
+  const currentBranch = getBranchName();
+  if (!branches[currentBranch]) {
+    console.error("current Branch does not exist");
+    return;
+  }
+  const branchPR = branches[currentBranch].pr || {};
+  const branchName = await askData("pullRequests", {
+    type: "list",
+    display: "Pull Resques",
+    default: branchName,
+    choices: () => PRbranches.map((pr) => ({ name: pr, value: pr, short: pr })),
+  });
+  console.log(branchName);
+};
 
 export const newCard = async () => {
   if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
@@ -17,7 +41,7 @@ export const newCard = async () => {
   let branchName = null;
   while (!branchName && branches[branchName]) {
     branchName = `${name}/${getBranchName(trelloCardUrl || "")}`;
-    branchName = await askData("Branch Name", {
+    branchName = await askData("branchName", {
       display: "Branch Name",
       default: branchName,
     });
