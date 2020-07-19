@@ -11,6 +11,11 @@ export const getBranchName = (url) =>
     .filter(isNaN)
     .join("-");
 
+export const getCardId = (url) => {
+  console.log(url);
+  return url.split("/")[4];
+};
+
 export const createBranchFromMaster = async (branchName) => {
   console.log("checkout to master");
   await git.checkout("master");

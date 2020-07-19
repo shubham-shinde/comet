@@ -1,14 +1,14 @@
 import { Bitbucket } from "bitbucket";
 
-export const createPR = async (
+export const createPR = async ({
+  workspace,
+  repo_slug,
   username,
   password,
   originBranch,
-  destinationBranch
-) => {
+  destinationBranch,
+}) => {
   try {
-    const workspace = "gocomet";
-    const repo_slug = "gocomet-app";
     const clientOptions = {
       auth: {
         username: username,
@@ -36,12 +36,12 @@ export const createPR = async (
       repo_slug,
       workspace,
     });
+    console.log(data);
     return {
       id: data.id,
-      url: data.links.self.href,
+      url: data.links.html.href,
     };
   } catch (err) {
-    console.log("bitbucket error", err);
+    console.log("bitbucket error", err.error);
   }
 };
-

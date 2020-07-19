@@ -1,9 +1,12 @@
 import inquirer from "inquirer";
 import fs from "fs";
+import { createPR } from "./bitbucket";
+import { createAttachment } from "./trello";
 import {
   currentBranch,
   getBranchName,
   createBranchFromMaster,
+  getCardId,
 } from "./gitLocal";
 
 const baseDir = ".comet";
@@ -15,42 +18,83 @@ export const createPRFromCurrrentBranch = async () => {
   if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
   const rawData = fs.readFileSync(dataFilePath, "utf8");
   const branches = JSON.parse(rawData);
-  const currentBranch = getBranchName();
-  if (!branches[currentBranch]) {
+  const thisBranch = await currentBranch();
+  if (!branches[thisBranch]) {
     console.error("current Branch does not exist");
     return;
   }
-  const branchPR = branches[currentBranch].pr || {};
-  const branchName = await askData("pullRequests", {
-    type: "list",
-    display: "Pull Resques",
-    default: branchName,
+  let branchPR = branches[thisBranch].pr || {};
+  const trelloCardUrl = branches[thisBranch].cardUrl;
+  console.log(branches[thisBranch]);
+  const branchNames = await askData("pullRequests", {
+    type: "checkbox",
+    display: "Pull Requests Destination branch",
     choices: () => PRbranches.map((pr) => ({ name: pr, value: pr, short: pr })),
   });
-  console.log(branchName);
+  const username = getData(tokenFilePath, "bitbucketUserName");
+  const password = getData(tokenFilePath, "bitbucketPassword");
+  const repo = getData(tokenFilePath, "repo");
+  const workspace = getData(tokenFilePath, "workspace");
+  const prs = await Promise.all(
+    branchNames.map(async (destinationBranch) => {
+      try {
+        const { id, url } = await createPR({
+          workspace,
+          repo_slug: repo,
+          username,
+          password,
+          originBranch: thisBranch,
+          destinationBranch,
+        });
+        console.log(destinationBranch, "PR URL", url);
+        return { id, url, toBranch: destinationBranch };
+      } catch (err) {
+        console.error("error creating pr for destinationBranch");
+      }
+    })
+  );
+  branchPR = {
+    ...branchPR,
+    ...(prs || []).reduce(
+      (obj, item) => ({
+        ...obj,
+        [item.toBranch]: { ...item },
+      }),
+      {}
+    ),
+  };
+  branches[thisBranch] = { ...branches[thisBranch], pr: { ...branchPR } };
+  fs.writeFileSync(dataFilePath, JSON.stringify(branches));
+  const key = getData(tokenFilePath, "trelloKey");
+  const token = getData(tokenFilePath, "trelloToken");
+  await Promise.all([
+    prs.map(async ({ url }) => {
+      const card_id = getCardId(trelloCardUrl);
+      await createAttachment({ url, key, token, card_id });
+    }),
+  ]);
+  console.log("Dan dana done............");
 };
 
 export const newCard = async () => {
   if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
   const rawData = fs.readFileSync(dataFilePath, "utf8");
-  const branches = JSON.parse(rawData);
+  const branches = JSON.parse(rawData) || {};
   const trelloCardUrl = await askData("TrollCard", {
     display: "Trello Card URL",
   });
   const name = getData(tokenFilePath, "name");
-  let branchName = null;
-  while (!branchName && branches[branchName]) {
-    branchName = `${name}/${getBranchName(trelloCardUrl || "")}`;
-    branchName = await askData("branchName", {
-      display: "Branch Name",
-      default: branchName,
-    });
-  }
+  let branchName = `${name}/${getBranchName(trelloCardUrl || "")}`;
+  branchName = await askData("branchName", {
+    display: "Branch Name",
+    default: branchName,
+  });
   branches[branchName] = {
     name: branchName,
     cardUrl: trelloCardUrl,
     pr: {},
   };
+  console.log(branches);
   fs.writeFileSync(dataFilePath, JSON.stringify(branches));
   await createBranchFromMaster(branchName);
   console.log(`You Are On ${branchName}`);
@@ -86,6 +130,7 @@ export const startInit = async () => {
     }),
     repo: await askAndSaveData("repo", tokenFilePath, {
       display: "Bitbucket Repo Slug ?",
+      type: "list",
       choices: [
         { name: "frontend-service", value: "frontend-service" },
         { name: "gocomet-app", value: "gocomet-app" },
