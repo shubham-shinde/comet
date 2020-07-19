@@ -6,3 +6,4 @@ yarn.lock
 *.swp
 *.swo
 tags
+.comet

@@ -25,6 +25,10 @@ export const createBranchFromMaster = async (branchName) => {
 
 export const currentBranch = async () => {
   const list = await git.branch();
-  return Object.values(list.branches).find((branch) => branch.current).name;
+  return list.current;
 };
 
+export const getRemote = async () => {
+  const list = await git.listRemote(["origin"]);
+  console.log(list);
+};
