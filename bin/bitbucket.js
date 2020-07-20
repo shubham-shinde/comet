@@ -36,7 +36,6 @@ export const createPR = async ({
       repo_slug,
       workspace,
     });
-    console.log(data);
     return {
       id: data.id,
       url: data.links.html.href,

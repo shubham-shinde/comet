@@ -4,12 +4,12 @@
   "description": "command application",
   "main": "bin/index.js",
   "scripts": {
-    "build": "babel src --out-dir bin",
+    "build": "babel bin --out-dir dist",
     "check": "node src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "comet": "bin/index.js"
+    "comet": "dist/index.js"
   },
   "keywords": [
     "cli",
@@ -20,12 +20,6 @@
   "author": "shubham",
   "license": "ISC",
   "dependencies": {
-    "@babel/cli": "^7.10.5",
-    "@babel/core": "^7.10.5",
-    "@babel/node": "^7.10.5",
-    "@babel/polyfill": "^7.10.4",
-    "@babel/preset-env": "^7.10.4",
-    "@babel/register": "^7.10.5",
     "axios": "^0.19.2",
     "bitbucket": "^2.4.0",
     "boxen": "^4.0.0",
@@ -34,5 +28,16 @@
     "nodemon": "^2.0.4",
     "simple-git": "^2.12.0",
     "yargs": "^13.2.4"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.10.5",
+    "@babel/core": "^7.10.5",
+    "@babel/node": "^7.10.5",
+    "@babel/polyfill": "^7.10.4",
+    "@babel/preset-env": "^7.10.4",
+    "@babel/register": "^7.10.5"
+  },
+  "bugs": {
+    "url": "https://github.com/shubham-shinde/comet/issues"
   }
 }
