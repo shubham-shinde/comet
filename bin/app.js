@@ -42,11 +42,25 @@ const argv = yargs
         })
         .command({
           // @params:
+          // @func: Show Checklist of the card
+          // @action: User Can update checklist
+          command: "checklist",
+          alias: ["cl"],
+          describe: "Current Card Checklist",
+          handler: () => {
+            // @chirag
+            // file : trello.js
+            console.log("checlistCurrentCard", workInProgress);
+          },
+        })
+        .command({
+          // @params:
           // @func: Open current Card URL on Browser
           command: "open",
           describe: "Open Current Trello card URL to browser",
           handler: async () => {
             // @shubham
+            // file: storage
             console.log("openCurrentTrelloURL", workInProgress);
           },
         })
@@ -64,6 +78,7 @@ const argv = yargs
                 describe: "List of PR Added on card",
                 handler: async () => {
                   // @chirag
+                  // file: trello.js
                   console.log("listCurrentPrOfCard", workInProgress);
                 },
               })
@@ -75,6 +90,7 @@ const argv = yargs
                 describe: "Add new PR to current card",
                 handler: async () => {
                   // @chirag
+                  // file: trello.js
                   console.log("addCurrentCardPR", workInProgress);
                 },
               }),
@@ -107,6 +123,7 @@ const argv = yargs
             "List all the PR from current branch, On Click ask to copy to clipboard or open on browser",
           handler: async (yargs) => {
             // @jitendra
+            // file: bitbucket.js
             console.log("listPR", workInProgress);
           },
         })
@@ -119,6 +136,7 @@ const argv = yargs
           describe: "Select PR to Merge",
           handler: async (yargs) => {
             // @jitendra
+            // file: bitbucket.js
             console.log("mergePR", workInProgress);
           },
         })
@@ -131,6 +149,7 @@ const argv = yargs
           describe: "Select PR to decline",
           handler: async (yargs) => {
             // @jitendra
+            // file: bitbucket.js
             console.log("declinePR", workInProgress);
           },
         });
