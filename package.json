@@ -24,8 +24,10 @@
     "bitbucket": "^2.4.0",
     "boxen": "^4.0.0",
     "chalk": "^2.4.2",
+    "clipboardy": "^2.3.0",
     "inquirer": "^7.3.1",
     "nodemon": "^2.0.4",
+    "opn": "^6.0.0",
     "simple-git": "^2.12.0",
     "yargs": "^13.2.4"
   },

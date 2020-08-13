@@ -1,201 +1,112 @@
 import inquirer from "inquirer";
+import opn from "opn";
+import { promisify } from "util";
+import chalk from "chalk";
 import fs from "fs";
+import { askData } from "./main";
 import { createPR } from "./bitbucket";
 import { createAttachment } from "./trello";
+import { currentBranch } from "./gitLocal";
 import {
-  currentBranch,
-  getBranchName,
-  createBranchFromMaster,
-  getCardId,
-} from "./gitLocal";
+  BASE_DIR,
+  MAIN_FILE,
+  DATA_FILE,
+  PR_BRANCHES,
+  BRANCH_FILL,
+  TOKEN_FILL,
+  MAIN_FILL,
+  REPO_SLUGS,
+  WORKSPACE,
+} from "./setting";
 
-const baseDir = ".comet";
-const tokenFilePath = `${baseDir}/token.json`;
-const dataFilePath = `${baseDir}/data.json`;
-const PRbranches = ["staging", "internal", "integration"];
+const fileExist = promisify(fs.exists);
+const mkdir = promisify(fs.mkdir);
 
-export const createPRFromCurrrentBranch = async () => {
-  if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
-  const rawData = fs.readFileSync(dataFilePath, "utf8");
-  const branches = JSON.parse(rawData);
-  const thisBranch = await currentBranch();
-  if (!branches[thisBranch]) {
-    console.error("current Branch does not exist");
-    return;
+export const getORCreateCurrentBranchData = async (
+  data_name,
+  branch_name = null
+) => {
+  const file = await getFile(DATA_FILE);
+  const thisBranch = branch_name ? branch_name : await currentBranch();
+  if (!file[thisBranch]) {
+    file[thisBranch] = { ...BRANCH_FILL, branch_name: thisBranch };
   }
-  let branchPR = branches[thisBranch].pr || {};
-  const trelloCardUrl = branches[thisBranch].cardUrl;
-  const branchNames = await askData("pullRequests", {
-    type: "checkbox",
-    display: "Pull Requests Destination branch",
-    choices: () => PRbranches.map((pr) => ({ name: pr, value: pr, short: pr })),
-  });
-  const username = getData(tokenFilePath, "bitbucketUserName");
-  const password = getData(tokenFilePath, "bitbucketPassword");
-  const repo = getData(tokenFilePath, "repo");
-  const workspace = getData(tokenFilePath, "workspace");
-  const prs = await Promise.all(
-    branchNames.map(async (destinationBranch) => {
-      try {
-        const { id, url } = await createPR({
-          workspace,
-          repo_slug: repo,
-          username,
-          password,
-          originBranch: thisBranch,
-          destinationBranch,
-        });
-        console.log(destinationBranch, "PR URL", url);
-        return { id, url, toBranch: destinationBranch };
-      } catch (err) {
-        console.error("error creating pr for destinationBranch");
-      }
-    })
-  );
-  branchPR = {
-    ...branchPR,
-    ...(prs || []).reduce(
-      (obj, item) => ({
-        ...obj,
-        [item.toBranch]: { ...item },
-      }),
-      {}
-    ),
-  };
-  branches[thisBranch] = { ...branches[thisBranch], pr: { ...branchPR } };
-  fs.writeFileSync(dataFilePath, JSON.stringify(branches));
-  const key = getData(tokenFilePath, "trelloKey");
-  const token = getData(tokenFilePath, "trelloToken");
-  await Promise.all([
-    prs.map(async ({ url }) => {
-      const card_id = getCardId(trelloCardUrl);
-      await createAttachment({ url, key, token, card_id });
-    }),
-  ]);
-  console.log("Dan dana done............");
-};
-
-export const addCurrentBranch = async () => {
-  if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
-  const rawData = fs.readFileSync(dataFilePath, "utf8");
-  const branches = JSON.parse(rawData) || {};
-  const trelloCardUrl = await askData("TrollCard", {
-    display: "Trello Card URL",
-  });
-  const name = getData(tokenFilePath, "name");
-  let branchName = await currentBranch();
-  branches[branchName] = {
-    name: branchName,
-    cardUrl: trelloCardUrl,
-    pr: {},
-  };
-  fs.writeFileSync(dataFilePath, JSON.stringify(branches));
-  console.log(`You Are On ${branchName}`);
-};
-
-export const newCard = async () => {
-  if (!fs.existsSync(dataFilePath)) fs.writeFileSync(dataFilePath, "{}");
-  const rawData = fs.readFileSync(dataFilePath, "utf8");
-  const branches = JSON.parse(rawData) || {};
-  const trelloCardUrl = await askData("TrollCard", {
-    display: "Trello Card URL",
-  });
-  const name = getData(tokenFilePath, "name");
-  let branchName = `${name}/${getBranchName(trelloCardUrl || "")}`;
-  branchName = await askData("branchName", {
-    display: "Branch Name",
-    default: branchName,
-  });
-  branches[branchName] = {
-    name: branchName,
-    cardUrl: trelloCardUrl,
-    pr: {},
-  };
-  fs.writeFileSync(dataFilePath, JSON.stringify(branches));
-  await createBranchFromMaster(branchName);
-  console.log(`You Are On ${branchName}`);
-};
-
-export const startInit = async () => {
-  createCometFiles();
-  const credentials = {
-    bitbucketUserName: await askAndSaveData(
-      "bitbucketUserName",
-      tokenFilePath,
-      {
-        display: "Bitbucket user name ?",
-      }
-    ),
-    bitbucketPassword: await askAndSaveData(
-      "bitbucketPassword",
-      tokenFilePath,
-      {
-        display: "Bitbucket Password ?",
-        type: "password",
-      }
-    ),
-    trelloKey: await askAndSaveData("trelloKey", tokenFilePath, {
-      display: "Trello Key ?",
-    }),
-    trelloToken: await askAndSaveData("trelloToken", tokenFilePath, {
-      display: "Trello Auth Token ?",
-    }),
-    workspace: await askAndSaveData("workspace", tokenFilePath, {
-      default: "gocomet",
-      display: "Bitbucket Workspace ?",
-    }),
-    repo: await askAndSaveData("repo", tokenFilePath, {
-      display: "Bitbucket Repo Slug ?",
-      type: "list",
-      choices: [
-        { name: "frontend-service", value: "frontend-service" },
-        { name: "gocomet-app", value: "gocomet-app" },
-        { name: "gocomet-dashboard", value: "gocomet-dashboard" },
-        { name: "gocomet-sidecar", value: "gocomet-sidecar" },
-      ],
-    }),
-    name: await askAndSaveData("name", tokenFilePath, {
-      display: "Name to add in branch (User Name) ?",
-    }),
-  };
-  return credentials;
-};
-
-const createCometFiles = () => {
-  if (!fs.existsSync(baseDir)) {
-    fs.mkdirSync(baseDir);
+  if (!(file[thisBranch] || {})[data_name]) {
+    file[thisBranch][data_name] = await askData(data_name);
   }
-  if (!fs.existsSync(tokenFilePath)) {
-    fs.writeFileSync(tokenFilePath, "{}");
+  await fs.promises.writeFile(DATA_FILE, JSON.stringify(file));
+  return file[thisBranch][data_name];
+};
+
+export const createOrUpdateBranch = async (
+  branch_name,
+  { trello_card = undefined, pull_requests = {}, ask = false }
+) => {
+  branch_name = branch_name || (await currentBranch());
+  const file = await getFile(DATA_FILE);
+  if (file[branch_name] && ask) {
+    if (!askData("file_already_exist_yes_to_continue", { type: "confirm" })) {
+      console.log(chalk.red("aborting.................."));
+      process.exit(1);
+    }
   }
+  file[branch_name] = {
+    ...file[branch_name],
+    branch_name: branch_name,
+  };
+  if (trello_card) file[branch_name]["trello_card"] = trello_card;
+  if (pull_requests) file[branch_name]["pull_requests"] = pull_requests;
+  await fs.promises.writeFile(DATA_FILE, JSON.stringify(file));
 };
 
-const askAndSaveData = async (credentialName, fileName, options = {}) => {
-  const rawData = fs.readFileSync(fileName, "utf8");
-  const credentials = JSON.parse(rawData);
-  options.default = (options || {}).default || credentials[credentialName];
-  credentials[credentialName] = await askData(credentialName, options);
-  fs.writeFileSync(fileName, JSON.stringify(credentials));
-  return credentials[credentialName];
+export const getorCreateMainData = async (
+  from,
+  data_name = null,
+  update = false
+) => {
+  const file = await getFile(MAIN_FILE);
+  if (!file[from]) {
+    file[from] = { ...MAIN_FILL[from] };
+  }
+  if (data_name && (!(file[from] || {})[data_name] || update)) {
+    file[from][data_name] = await askData(
+      `${from}_${data_name}`,
+      optionsForData(from, data_name, (file[from] || {})[data_name])
+    );
+  }
+  await fs.promises.writeFile(MAIN_FILE, JSON.stringify(file));
+  return data_name ? file[from][data_name] : file[from];
 };
 
-const askData = async (credentialName, options) => {
-  const { type, choices, display } = options || {};
-  const answers = await inquirer.prompt([
-    {
-      type: type || "input",
-      name: credentialName,
-      message: display || `Enter Your ${credentialName} : `,
-      default: (options || {}).default,
-      choices,
-      validate: (value) => (value ? true : false),
-    },
-  ]);
-  return answers[credentialName];
+const getFile = async (file_path) => {
+  const file_exist = await fileExist(file_path);
+  if (!file_exist) {
+    await mkdir(BASE_DIR, { recursive: true });
+    await fs.promises.writeFile(file_path, "{}");
+  }
+  return JSON.parse(await fs.promises.readFile(file_path));
 };
 
-const getData = (fileName, credentialName) => {
-  const rawData = fs.readFileSync(fileName, "utf8");
-  const credentials = JSON.parse(rawData);
-  return credentials[credentialName];
+const optionsForData = (from, data_name = null, initial = null) => {
+  const options = {
+    default: initial,
+    type: null,
+    display: null,
+    choices: null,
+  };
+  if (data_name === "password" || data_name === "token") {
+    options.type = "password";
+  }
+  if (data_name === "repo_slug") {
+    options.type = "list";
+    options.choices = REPO_SLUGS;
+  }
+  if (data_name === "workspace") {
+    options.default = WORKSPACE;
+  }
+  return options;
+};
+
+export const openCurrentCard = async () => {
+  opn(await getORCreateCurrentBranchData("trello_card"));
 };

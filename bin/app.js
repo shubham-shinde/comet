@@ -1,12 +1,15 @@
 import chalk from "chalk";
 import boxen from "boxen";
 import yargs from "yargs";
+import { createPR, PRList, mergePR, declinePR } from "./bitbucket";
+import { addNewPR } from "./trello";
 import {
   startInit,
   newCard,
   addCurrentBranch,
   createPRFromCurrrentBranch,
 } from "./main";
+import { openCurrentCard } from "./storage";
 
 const workInProgress = "Work In Progress!!!!";
 
@@ -18,7 +21,7 @@ const argv = yargs
     // @func: Create .comet in dir and Save data in token file
     command: "init",
     describe: "Init comet into repo",
-    handler: async () => startInit(),
+    handler: startInit,
   })
   .command({
     command: "card",
@@ -30,15 +33,9 @@ const argv = yargs
           // @params: Trello card URL, Branch Name(Defautl give by trello link)
           // @func: Save Trello URL to data file and checkout to new branch from master
           command: "new",
+          alias: ["new_card", "new_task"],
           describe: "Checkout to new branch with Card URL",
-          handler: () => createPRFromCurrrentBranch(),
-        })
-        .command({
-          // @params: Trello Card URL
-          // @func: Take current branch and add Trello Card URL to Current Branch
-          command: "current",
-          describe: "Current Branch will be add with Trello URL",
-          handler: () => addCurrentBranch(),
+          handler: newCard,
         })
         .command({
           // @params:
@@ -58,11 +55,7 @@ const argv = yargs
           // @func: Open current Card URL on Browser
           command: "open",
           describe: "Open Current Trello card URL to browser",
-          handler: async () => {
-            // @shubham
-            // file: storage
-            console.log("openCurrentTrelloURL", workInProgress);
-          },
+          handler: openCurrentCard,
         })
         .command({
           command: "pr",
@@ -76,11 +69,7 @@ const argv = yargs
                 // @action: On client of andy PR it'll open on new branch
                 command: "list",
                 describe: "List of PR Added on card",
-                handler: async () => {
-                  // @chirag
-                  // file: trello.js
-                  console.log("listCurrentPrOfCard", workInProgress);
-                },
+                handler: PRList,
               })
               .command({
                 // @params: PR to add
@@ -88,11 +77,7 @@ const argv = yargs
                 // @action: Select Available PR
                 command: "new",
                 describe: "Add new PR to current card",
-                handler: async () => {
-                  // @chirag
-                  // file: trello.js
-                  console.log("addCurrentCardPR", workInProgress);
-                },
+                handler: addNewPR,
               }),
         });
     },
@@ -109,10 +94,7 @@ const argv = yargs
           // @func: Create PR of selected Branch from Current branch and Save to data file
           command: "new",
           describe: "Createn new PR",
-          handler: async (yargs) => {
-            // @shubham
-            await createPRFromCurrrentBranch();
-          },
+          handler: createPR,
         })
         .command({
           // @parmas:
@@ -121,11 +103,7 @@ const argv = yargs
           command: "list",
           describe:
             "List all the PR from current branch, On Click ask to copy to clipboard or open on browser",
-          handler: async (yargs) => {
-            // @jitendra
-            // file: bitbucket.js
-            console.log("listPR", workInProgress);
-          },
+          handler: PRList,
         })
         .command({
           // @parmas: PR to Merge
@@ -134,11 +112,7 @@ const argv = yargs
           // @error: Throw error if user don't have permission to merge
           command: "merge",
           describe: "Select PR to Merge",
-          handler: async (yargs) => {
-            // @jitendra
-            // file: bitbucket.js
-            console.log("mergePR", workInProgress);
-          },
+          handler: mergePR,
         })
         .command({
           // @parmas: PR to Decline
@@ -147,11 +121,7 @@ const argv = yargs
           // @error: Throw error if user don't have permission to decline
           command: "decline",
           describe: "Select PR to decline",
-          handler: async (yargs) => {
-            // @jitendra
-            // file: bitbucket.js
-            console.log("declinePR", workInProgress);
-          },
+          handler: declinePR,
         });
     },
   })
