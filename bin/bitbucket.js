@@ -10,24 +10,46 @@ import {
 } from "./storage";
 import { askData } from "./main";
 
+export const getPR = async () => {
+  const selectedPRID = await selectPR();
+  const prData = await getPullRequest(selectedPRID);
+  console.log(prData.links.html.href);
+  console.log(chalk.bold("Origin Branch :"), prData.source.branch.name);
+  console.log(
+    chalk.bold("Destination Branch :"),
+    prData.destination.branch.name
+  );
+  console.log(chalk.bold("State :"), prData.state);
+  console.log(chalk.bold("Comment Count :"), prData.comment_count);
+  console.log("\n");
+};
+
+export const copyPR = async () => {
+  const selectedPRID = await selectPR();
+  copy.writeSync(await generatePRLink(selectedPRID));
+  console.log("Selected PR is Copied to Clipboard");
+};
+
+export const openPR = async () => {
+  const selectedPRID = await selectPR();
+  opn(await generatePRLink(selectedPRID));
+};
+
 export const declinePR = async () => {
   const selectedPRID = await selectPR();
-  const username = await getorCreateMainData("bitbucket", "username");
-  const password = await getorCreateMainData("bitbucket", "password");
-  const auth = { username: username, password: password };
-  const bitbucket = new Bitbucket({ auth });
-  // TODO remove pr from pull_requests
-  await declinePullRequest(selectedPRID, bitbucket);
+  await declinePullRequest(selectedPRID);
 };
 
 export const mergePR = async () => {
   const selectedPRID = await selectPR();
+  await mergePullRequest(selectedPRID);
+};
+
+const bitbucketAuth = async () => {
   const username = await getorCreateMainData("bitbucket", "username");
   const password = await getorCreateMainData("bitbucket", "password");
   const auth = { username: username, password: password };
-  const bitbucket = new Bitbucket({ auth });
-  // TODO remove pr from pull_requests
-  await mergePullRequest(selectedPRID, bitbucket);
+  return new Bitbucket({ auth });
 };
 
 export const PRList = async () => {
@@ -38,9 +60,44 @@ export const PRList = async () => {
   } else console.log(chalk.yellow("No pull request available!!"));
 };
 
+export const createPR = async () => {
+  const originBranch = await getORCreateCurrentBranchData("branch_name");
+  const workspace = await getorCreateMainData("bitbucket", "workspace");
+  const repo_slug = await getorCreateMainData("bitbucket", "repo_slug");
+  const trello_card = await getORCreateCurrentBranchData("trello_card");
+  const branchNames = await askData("pull_requests", {
+    type: "checkbox",
+    display: "Pull Requests Destination branches",
+    choices: () =>
+      PR_BRANCHES.map((pr) => ({ name: pr, value: pr, short: pr })),
+  });
+  if (!branchNames.length) {
+    console.log(chalk.yellow("Select atleast one destination branch"));
+    process.exit(1);
+  }
+  const title = await askData("title", { default: originBranch });
+  const description = await askData("description", {
+    type: "editor",
+    default: `card URL - ${trello_card}`,
+  });
+  console.log("Pull request initiated for", branchNames.join(", "));
+  const prs = await getORCreateCurrentBranchData("pull_requests");
+  for (let i in branchNames) {
+    const body = {
+      title,
+      source: { branch: { name: originBranch } },
+      destination: { branch: { name: branchNames[i] } },
+      description,
+    };
+    const pr_data = await bitbucketPrCreator(body, repo_slug, workspace);
+    prs[branchNames[i]] = (pr_data || {}).id;
+  }
+  await createOrUpdateBranch(originBranch, { pull_requests: prs });
+};
+
 export const selectPR = async ({ multiple = false } = {}) => {
   const pull_requests = await getORCreateCurrentBranchData("pull_requests");
-  if (pull_requests) {
+  if (pull_requests && JSON.stringify(pull_requests) != "{}") {
     return await askData("pull_requests", {
       type: multiple ? "checkbox" : "list",
       choices: await Promise.all(
@@ -52,51 +109,36 @@ export const selectPR = async ({ multiple = false } = {}) => {
       ),
       display: "Select to copy pull request to clipboard",
     });
+  } else {
+    console.log("No Pull Request is available!");
+    process.exit(1);
   }
 };
 
-export const createPR = async () => {
-  const originBranch = await getORCreateCurrentBranchData("branch_name");
-  const username = await getorCreateMainData("bitbucket", "username");
-  const password = await getorCreateMainData("bitbucket", "password");
-  const workspace = await getorCreateMainData("bitbucket", "workspace");
-  const repo_slug = await getorCreateMainData("bitbucket", "repo_slug");
-  const trello_card = await getORCreateCurrentBranchData("trello_card");
-  const branchNames = await askData("pull_requests", {
-    type: "checkbox",
-    display: "Pull Requests Destination branches",
-    choices: () =>
-      PR_BRANCHES.map((pr) => ({ name: pr, value: pr, short: pr })),
-  });
-  const title = await askData("title", { default: originBranch });
-  const description = await askData("description", {
-    type: "editor",
-    default: `card URL - ${trello_card}`,
-  });
-  console.log("Pull request initiated for", branchNames.join(", "));
-  const auth = { username: username, password: password };
-  const bitbucket = new Bitbucket({ auth });
-  const prs = await getORCreateCurrentBranchData("pull_requests");
-  for (let i in branchNames) {
-    const body = {
-      title,
-      source: { branch: { name: originBranch } },
-      destination: { branch: { name: branchNames[i] } },
-      description,
-    };
-    const pr_data = await bitbucketPrCreator(
-      bitbucket,
-      body,
-      repo_slug,
-      workspace
-    );
-    prs[branchNames[i]] = (pr_data || {}).id;
-  }
-  await createOrUpdateBranch(originBranch, { pull_requests: prs });
-};
-
-const mergePullRequest = async (id, bitbucket) => {
+const getPullRequest = async (id) => {
   try {
+    const bitbucket = await bitbucketAuth();
+    const workspace = await getorCreateMainData("bitbucket", "workspace");
+    const repo_slug = await getorCreateMainData("bitbucket", "repo_slug");
+    const { data, headers } = await bitbucket.repositories.getPullRequest({
+      pull_request_id: id,
+      repo_slug,
+      workspace,
+    });
+    return data;
+  } catch (err) {
+    let errors = (((err || {}).error || {}).error || {}).message;
+    console.log(err);
+    console.log(
+      chalk.redBright(errors || "Error while Merging PR try manual approch")
+    );
+    process.exit(1);
+  }
+};
+
+const mergePullRequest = async (id) => {
+  try {
+    const bitbucket = await bitbucketAuth();
     const workspace = await getorCreateMainData("bitbucket", "workspace");
     const repo_slug = await getorCreateMainData("bitbucket", "repo_slug");
     const { data, headers } = await bitbucket.repositories.mergePullRequest({
@@ -113,8 +155,9 @@ const mergePullRequest = async (id, bitbucket) => {
   }
 };
 
-const declinePullRequest = async (id, bitbucket) => {
+const declinePullRequest = async (id) => {
   try {
+    const bitbucket = await bitbucketAuth();
     const workspace = await getorCreateMainData("bitbucket", "workspace");
     const repo_slug = await getorCreateMainData("bitbucket", "repo_slug");
     const { data, headers } = await bitbucket.repositories.declinePullRequest({
@@ -137,13 +180,9 @@ export const generatePRLink = async (id) => {
   return `https://bitbucket.org/${workspace}/${repo_slug}/pull-requests/${id}`;
 };
 
-export const bitbucketPrCreator = async (
-  bitbucket,
-  body,
-  repo_slug,
-  workspace
-) => {
+export const bitbucketPrCreator = async (body, repo_slug, workspace) => {
   try {
+    const bitbucket = await bitbucketAuth();
     const { data, headers } = await bitbucket.repositories.createPullRequest({
       _body: body,
       repo_slug,
@@ -159,11 +198,11 @@ export const bitbucketPrCreator = async (
       url: data.links.html.href,
     };
   } catch (err) {
-    console.log(err);
+    const error = (((err || {}).error || {}).error || {}).message;
     console.log(
-      chalk.yellow(`Error while creating pull request for`),
+      chalk.yellow(error || `Error while creating pull request for`),
       chalk.red(
-        `Branch ${body.source.branch.name} -> ${body.destination.branch.name}`
+        `Branch ${body.source.branch.name} -> ${body.destination.branch.name} Error`
       )
     );
     console.log(
@@ -173,4 +212,8 @@ export const bitbucketPrCreator = async (
       )
     );
   }
+};
+
+export const PRID = (link) => {
+  return link.split("/")[6];
 };

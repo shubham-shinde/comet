@@ -1,8 +1,16 @@
 import chalk from "chalk";
 import boxen from "boxen";
 import yargs from "yargs";
-import { createPR, PRList, mergePR, declinePR } from "./bitbucket";
-import { addNewPR } from "./trello";
+import {
+  createPR,
+  PRList,
+  mergePR,
+  declinePR,
+  getPR,
+  copyPR,
+  openPR,
+} from "./bitbucket";
+import { addNewPR, getCheckList, cardDetails } from "./trello";
 import {
   startInit,
   newCard,
@@ -33,27 +41,29 @@ const argv = yargs
           // @params: Trello card URL, Branch Name(Defautl give by trello link)
           // @func: Save Trello URL to data file and checkout to new branch from master
           command: "new",
-          alias: ["new_card", "new_task"],
           describe: "Checkout to new branch with Card URL",
           handler: newCard,
+        })
+        .usage("Usage: $0 $1 <command>")
+        .command({
+          // @params: Trello card URL
+          // @func: Show all the required details of the card
+          command: ["show", "details"],
+          describe: "Shows All the details of the card",
+          handler: cardDetails,
         })
         .command({
           // @params:
           // @func: Show Checklist of the card
           // @action: User Can update checklist
-          command: "checklist",
-          alias: ["cl"],
+          command: ["checklist", "cl"],
           describe: "Current Card Checklist",
-          handler: () => {
-            // @chirag
-            // file : trello.js
-            console.log("checlistCurrentCard", workInProgress);
-          },
+          handler: getCheckList,
         })
         .command({
           // @params:
           // @func: Open current Card URL on Browser
-          command: "open",
+          command: ["open", "o"],
           describe: "Open Current Trello card URL to browser",
           handler: openCurrentCard,
         })
@@ -100,10 +110,28 @@ const argv = yargs
           // @parmas:
           // @func: List Current Branch PR (all)
           // @action: Click to copy or open
-          command: "list",
+          command: "show",
           describe:
-            "List all the PR from current branch, On Click ask to copy to clipboard or open on browser",
-          handler: PRList,
+            "show all the PR from current branch, On Click shows the give details of the pr",
+          handler: getPR,
+        })
+        .command({
+          // @parmas:
+          // @func: List Current Branch PR (all)
+          // @action: Click to copy or open
+          command: "copy",
+          describe:
+            "show all the PR from current branch, On Click ask to copy to clipboard or open on browser",
+          handler: copyPR,
+        })
+        .command({
+          // @parmas:
+          // @func: List Current Branch PR (all)
+          // @action: Click to copy or open
+          command: "open",
+          describe:
+            "show all the PR from current branch, On Click ask to open PR in default browser",
+          handler: openPR,
         })
         .command({
           // @parmas: PR to Merge

@@ -25,6 +25,7 @@
     "boxen": "^4.0.0",
     "chalk": "^2.4.2",
     "clipboardy": "^2.3.0",
+    "figlet": "^1.5.0",
     "inquirer": "^7.3.1",
     "nodemon": "^2.0.4",
     "opn": "^6.0.0",

@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import fs from "fs";
 import chalk from "chalk";
+import figlet from "figlet";
 import { createPR } from "./bitbucket";
 import { createAttachment } from "./trello";
 import {
@@ -43,6 +44,7 @@ export const newCard = async () => {
 };
 
 export const startInit = async () => {
+  figlet.text("COMET", (err, data) => console.log(data));
   await getorCreateMainData("bitbucket", "username", true);
   await getorCreateMainData("bitbucket", "password", true);
   await getorCreateMainData("bitbucket", "workspace", true);
