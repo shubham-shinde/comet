@@ -2,8 +2,13 @@ import inquirer from "inquirer";
 import fs from "fs";
 import chalk from "chalk";
 import figlet from "figlet";
-import { createPR } from "./bitbucket";
-import { createAttachment } from "./trello";
+import { createPR, mergePR } from "./bitbucket";
+import { createAttachment, addNewPR } from "./trello";
+import {
+  INSTANT_MERGE_BRANCH,
+  INSTANT_PR_BRANCHES,
+  TRELLO_ADD_BRANCHES,
+} from "./setting";
 import {
   getORCreateCurrentBranchData,
   getorCreateMainData,
@@ -53,6 +58,15 @@ export const startInit = async () => {
   await getorCreateMainData("trello", "key", true);
   await getorCreateMainData("trello", "token", true);
   console.log(chalk.green("Congrats!! Comet setup is done"));
+};
+
+export const auto = async () => {
+  const pr_object = await createPR("random", INSTANT_PR_BRANCHES);
+  await addNewPR(
+    "random",
+    TRELLO_ADD_BRANCHES.map((name) => pr_object[name])
+  );
+  await mergePR("random", pr_object[INSTANT_MERGE_BRANCH]);
 };
 
 export const askData = async (credentialName, options) => {

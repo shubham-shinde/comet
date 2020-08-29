@@ -75,16 +75,17 @@ const showChecklist = (checklists) => {
   });
 };
 
-export const addNewPR = async () => {
+export const addNewPR = async (_, ids = null) => {
   const key = await getorCreateMainData("trello", "key");
   const token = await getorCreateMainData("trello", "token");
   const cardUrl = await getORCreateCurrentBranchData("trello_card");
-  const pull_request_ids = await selectPR({ multiple: true });
+  const pull_request_ids = ids || (await selectPR({ multiple: true }));
   for (let id in pull_request_ids) {
     let url = await generatePRLink(pull_request_ids[id]);
     // TODO check is pr is already present
     await createAttachment({ url, key, token, card_id: getCardId(cardUrl) });
   }
+  console.log(chalk.green("Pull Request added to Card"));
 };
 
 export const createAttachment = async ({ url, key, token, card_id }) => {

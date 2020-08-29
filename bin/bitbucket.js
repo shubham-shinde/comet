@@ -40,8 +40,8 @@ export const declinePR = async () => {
   await declinePullRequest(selectedPRID);
 };
 
-export const mergePR = async () => {
-  const selectedPRID = await selectPR();
+export const mergePR = async (_, id = null) => {
+  const selectedPRID = id || (await selectPR());
   await mergePullRequest(selectedPRID);
 };
 
@@ -60,17 +60,19 @@ export const PRList = async () => {
   } else console.log(chalk.yellow("No pull request available!!"));
 };
 
-export const createPR = async () => {
+export const createPR = async (_, branches = false) => {
   const originBranch = await getORCreateCurrentBranchData("branch_name");
   const workspace = await getorCreateMainData("bitbucket", "workspace");
   const repo_slug = await getorCreateMainData("bitbucket", "repo_slug");
   const trello_card = await getORCreateCurrentBranchData("trello_card");
-  const branchNames = await askData("pull_requests", {
-    type: "checkbox",
-    display: "Pull Requests Destination branches",
-    choices: () =>
-      PR_BRANCHES.map((pr) => ({ name: pr, value: pr, short: pr })),
-  });
+  const branchNames =
+    branches ||
+    (await askData("pull_requests", {
+      type: "checkbox",
+      display: "Pull Requests Destination branches",
+      choices: () =>
+        PR_BRANCHES.map((pr) => ({ name: pr, value: pr, short: pr })),
+    }));
   if (!branchNames.length) {
     console.log(chalk.yellow("Select atleast one destination branch"));
     process.exit(1);
@@ -93,6 +95,7 @@ export const createPR = async () => {
     prs[branchNames[i]] = (pr_data || {}).id;
   }
   await createOrUpdateBranch(originBranch, { pull_requests: prs });
+  return prs;
 };
 
 export const selectPR = async ({ multiple = false } = {}) => {

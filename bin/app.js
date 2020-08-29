@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import boxen from "boxen";
 import yargs from "yargs";
+import { openTest } from "./jenkins";
 import {
   createPR,
   PRList,
@@ -16,6 +17,7 @@ import {
   newCard,
   addCurrentBranch,
   createPRFromCurrrentBranch,
+  auto,
 } from "./main";
 import { openCurrentCard } from "./storage";
 
@@ -30,6 +32,14 @@ const argv = yargs
     command: "init",
     describe: "Init comet into repo",
     handler: startInit,
+  })
+  .command({
+    // @params: everyting
+    // @func: Creates PR then addes to card and merge one in integration
+    command: "auto",
+    describe:
+      "Auto Creation of PR then adding to card and then merging integration PR",
+    handler: auto,
   })
   .command({
     command: "card",
@@ -151,6 +161,19 @@ const argv = yargs
           describe: "Select PR to decline",
           handler: declinePR,
         });
+    },
+  })
+  .command({
+    command: ["jenkins", "jk"],
+    describe: "Jenkins tasks",
+    builder: (yargs) => {
+      yargs.usage("Usage: $0 $1 $2 <command>").command({
+        // @params: PR target branch
+        // @func: Create PR of selected Branch from Current branch and Save to data file
+        command: "open",
+        describe: "Open Current Branch Jenkins Test",
+        handler: openTest,
+      });
     },
   })
   .help("h")
