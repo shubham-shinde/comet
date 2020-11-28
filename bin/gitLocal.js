@@ -2,8 +2,6 @@ import simpleGit from "simple-git";
 import chalk from "chalk";
 const git = simpleGit();
 
-export const destinationBranches = ["staging", "internal", "integration"];
-
 export const getBranchName = (url) =>
   url
     .split("/")

@@ -7,7 +7,7 @@ export const INSTANT_PR_BRANCHES = [
   INSTANT_MERGE_BRANCH,
   ...TRELLO_ADD_BRANCHES,
 ];
-export const PR_BRANCHES = [...INSTANT_PR_BRANCHES, "master"];
+export const PR_BRANCHES = [...INSTANT_PR_BRANCHES, "master", "qc"];
 export const BITBUCKET_BASE = "https://api.bitbucket.org/2.0/";
 export const TRELLO_BASE = "https://api.trello.com/1/";
 export const WORKSPACE = "gocomet";
