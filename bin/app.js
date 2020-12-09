@@ -43,7 +43,7 @@ const argv = yargs
   })
   .command({
     command: "card",
-    describe: "Trello Card related Actions",
+    describe: "Jira Card related Actions",
     builder: (yargs) => {
       yargs
         .usage("Usage: $0 $1 <command>")

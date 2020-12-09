@@ -23,11 +23,11 @@ import {
 } from "./gitLocal";
 
 export const newCard = async () => {
-  const trelloCardUrl = await askData("TrollCard", {
-    display: "Trello Card URL",
+  const BranchSuffix = await askData("Branch Suffix", {
+    display: "Copy from create branch > branch name",
   });
   const name = await getorCreateMainData("user", "name_slug");
-  let branchName = `${name}/${getBranchName(trelloCardUrl || "")}`;
+  let branchName = `${name}/${BranchSuffix}`;
   branchName = await askData("branchName", {
     display: "Branch Name",
     default: branchName,
@@ -45,7 +45,7 @@ export const newCard = async () => {
         }));
   }
   await createBranchFromMaster(branchName);
-  createOrUpdateBranch(branchName, { trello_card: trelloCardUrl, ask: true });
+  createOrUpdateBranch(branchName, { trello_card: BranchSuffix, ask: true });
 };
 
 export const startInit = async () => {
